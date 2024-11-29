@@ -21,20 +21,25 @@
   <groupId>com.examen</groupId>
   <artifactId>2</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>2</name>
-  <description>examen</description>
-  <url />
+  <name>Examen</name>
+  <description>Examen Final - Configuración Optimizada</description>
+  <url>https://spring.io/projects/spring-boot/2</url>
   <licenses>
-    <license />
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
   </licenses>
   <developers>
-    <developer />
+    <developer>
+      <name>Spring</name>
+      <email>ask@spring.io</email>
+      <organization>VMware, Inc.</organization>
+      <organizationUrl>https://www.spring.io</organizationUrl>
+    </developer>
   </developers>
   <scm>
-    <connection />
-    <developerConnection />
-    <tag />
-    <url />
+    <url>https://github.com/spring-projects/spring-boot/2</url>
   </scm>
   <issueManagement />
   <properties>
@@ -7832,12 +7837,6 @@
   </dependencyManagement>
   <dependencies>
     <dependency>
-      <groupId>org.springdoc</groupId>
-      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-      <version>2.1.0</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
       <version>3.4.0</version>
@@ -7898,6 +7897,12 @@
       <artifactId>spring-security-test</artifactId>
       <version>6.4.1</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <version>2.1.0</version>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
   <repositories>
@@ -8277,23 +8282,11 @@
               <goal>repackage</goal>
             </goals>
             <configuration>
-              <excludes>
-                <exclude>
-                  <groupId>org.projectlombok</groupId>
-                  <artifactId>lombok</artifactId>
-                </exclude>
-              </excludes>
               <mainClass>${start-class}</mainClass>
             </configuration>
           </execution>
         </executions>
         <configuration>
-          <excludes>
-            <exclude>
-              <groupId>org.projectlombok</groupId>
-              <artifactId>lombok</artifactId>
-            </exclude>
-          </excludes>
           <mainClass>${start-class}</mainClass>
         </configuration>
       </plugin>

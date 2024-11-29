@@ -1,118 +1,125 @@
 package com.examen2.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.http.HttpMethod;  // <-- Aquí está el import que falta
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Autowired
-    AuthenticationConfiguration authenticationConfiguration;
+    private final AuthenticationConfiguration authenticationConfiguration;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity
-            .csrf().disable()  // Deshabilitar CSRF
-            .authorizeRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/api/promotions", "/api/promotions/{id}").hasAnyAuthority("READ", "UPDATE", "CREATE", "DELETE")
-                .requestMatchers(HttpMethod.POST, "/api/promotions").hasAnyAuthority("CREATE", "ADMIN", "DEVELOPER", "EDITOR")
-                .requestMatchers(HttpMethod.PUT, "/api/promotions/{id}").hasAnyAuthority("UPDATE", "ADMIN", "DEVELOPER", "MODERATOR")
-                .requestMatchers(HttpMethod.DELETE, "/api/promotions/{id}").hasAnyAuthority("DELETE", "ADMIN", "DEVELOPER")
-                .anyRequest().denyAll() // Negar cualquier otro acceso no autorizado
-            )
-            .httpBasic()  // Configuración básica HTTP
-            .and()
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Configuración de sesión sin estado
-            ); // Utiliza el 'and()' para finalizar la configuración
-
-        return httpSecurity.build();
+    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration) {
+        this.authenticationConfiguration = authenticationConfiguration;
     }
 
-    // Bean para obtener el AuthenticationManager
+    // Security Filter Chain Configuration
+    @Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+    return httpSecurity
+            .httpBasic(Customizer.withDefaults())  // Autenticación básica
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))  // Sin estado
+            .csrf().disable()  // Deshabilitar CSRF para una API REST
+            .authorizeHttpRequests(http -> {
+                // Permitir acceso a Swagger UI y OpenAPI sin autenticación
+                http.requestMatchers(
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/swagger-resources/**",
+                        "/webjars/**"
+                ).permitAll();
+
+                // Configurar permisos específicos para los endpoints de tu API
+                http.requestMatchers(HttpMethod.GET, "/api/promotions").hasAnyAuthority("READ");
+                http.requestMatchers(HttpMethod.GET, "/api/promotions/{id}").hasAnyAuthority("READ");
+                http.requestMatchers(HttpMethod.POST, "/api/promotions").hasAnyAuthority("CREATE");
+                http.requestMatchers(HttpMethod.PUT, "/api/promotions/{id}").hasAnyAuthority("UPDATE");
+                http.requestMatchers(HttpMethod.DELETE, "/api/promotions/{id}").hasAnyAuthority("DELETE");
+
+                // Cualquier otra solicitud requiere autenticación
+                http.anyRequest().authenticated();
+            })
+            .build();
+}
+
+    // AuthenticationManager Configuration
     @Bean
     public AuthenticationManager authenticationManager() throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
-    // Bean para el AuthenticationProvider, usando DaoAuthenticationProvider
+    // AuthenticationProvider Configuration
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
-        daoAuthenticationProvider.setUserDetailsService(userDetailsService());
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());  // Configurar codificador de contraseñas
+        daoAuthenticationProvider.setUserDetailsService(userDetailsService());  // Configurar servicio de detalles de usuario
         return daoAuthenticationProvider;
     }
 
-    // Bean para el PasswordEncoder (utilizando BCrypt para mayor seguridad)
+    // Password Encoder Configuration
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(); // Recomendado en producción para la seguridad
+        return NoOpPasswordEncoder.getInstance();
     }
 
-    // Bean para el UserDetailsService, que configura los usuarios en memoria
+    // UserDetailsService Configuration
     @Bean
     public UserDetailsService userDetailsService() {
-        // Definir los usuarios en memoria con sus roles y permisos
-        UserDetails admin = org.springframework.security.core.userdetails.User
-                .withUsername("admin")
-                .password(passwordEncoder().encode("admin123"))
+        UserDetails admin = User.withUsername("admin")
+                .password(passwordEncoder().encode("admin1234"))
                 .roles("ADMIN")
-                .authorities("READ", "CREATE", "UPDATE", "DELETE", "CREATE_USER")
+                .authorities("READ", "CREATE", "UPDATE", "DELETE")
                 .build();
 
-        UserDetails user = org.springframework.security.core.userdetails.User
-                .withUsername("user")
-                .password(passwordEncoder().encode("user123"))
+        UserDetails user = User.withUsername("user")
+                .password(passwordEncoder().encode("user1234"))
                 .roles("USER")
                 .authorities("READ")
                 .build();
 
-        UserDetails moderator = org.springframework.security.core.userdetails.User
-                .withUsername("moderator")
-                .password(passwordEncoder().encode("mod123"))
+        UserDetails moderator = User.withUsername("moderator")
+                .password(passwordEncoder().encode("mod1234"))
                 .roles("MODERATOR")
                 .authorities("READ", "UPDATE")
                 .build();
 
-        UserDetails editor = org.springframework.security.core.userdetails.User
-                .withUsername("editor")
-                .password(passwordEncoder().encode("editor123"))
+        UserDetails editor = User.withUsername("editor")
+                .password(passwordEncoder().encode("editor1234"))
                 .roles("EDITOR")
                 .authorities("UPDATE")
                 .build();
 
-        UserDetails developer = org.springframework.security.core.userdetails.User
-                .withUsername("developer")
-                .password(passwordEncoder().encode("dev123"))
+        UserDetails developer = User.withUsername("developer")
+                .password(passwordEncoder().encode("dev1234"))
                 .roles("DEVELOPER")
                 .authorities("READ", "WRITE", "UPDATE", "DELETE", "CREATE_USER")
                 .build();
 
-        UserDetails analyst = org.springframework.security.core.userdetails.User
-                .withUsername("analyst")
-                .password(passwordEncoder().encode("analyst123"))
+        UserDetails analyst = User.withUsername("analyst")
+                .password(passwordEncoder().encode("analyst1234"))
                 .roles("ANALYST")
                 .authorities("READ", "DELETE")
                 .build();
@@ -125,6 +132,6 @@ public class SecurityConfig {
         userDetailsList.add(developer);
         userDetailsList.add(analyst);
 
-        return new InMemoryUserDetailsManager(userDetailsList);
+        return new InMemoryUserDetailsManager(userDetailsList);  // Usar usuarios en memoria
     }
 }
